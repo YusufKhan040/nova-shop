@@ -182,13 +182,9 @@ When your demonstration is finished, open the Elastic Beanstalk environment and 
 
 ### 2. Push this project
 
-In **Command Prompt**, run the following from this folder. Replace `YOUR-USERNAME` with your GitHub username:
+This project is already initialized and committed locally. In **Command Prompt**, run the following from this folder. Replace `YOUR-USERNAME` with your GitHub username:
 
 ```cmd
-git init
-git add .
-git commit -m "Initial Nova Shop full-stack project"
-git branch -M main
 git remote add origin https://github.com/YOUR-USERNAME/nova-shop.git
 git push -u origin main
 ```
