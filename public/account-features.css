@@ -1,0 +1,1 @@
+.wishlist-toolbar{grid-column:1/-1;background:#edf2ec;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;font-size:.9rem}.wishlist-toolbar .text-button{font-size:.82rem}@media(max-width:700px){.wishlist-toolbar{align-items:flex-start;gap:10px;flex-direction:column}}

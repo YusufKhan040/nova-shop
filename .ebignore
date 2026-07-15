@@ -1,0 +1,10 @@
+.git
+.agents
+.codex
+node_modules
+data
+*.pptx
+create_presentation.ps1
+README.md
+.env
+docker-compose.yml

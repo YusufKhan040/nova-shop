@@ -1,0 +1,13 @@
+{
+  "name": "nova-shop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack e-commerce final-year project with SQLite database",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

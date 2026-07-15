@@ -1,0 +1,15 @@
+services:
+  nova-shop:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      SESSION_SECRET: change-this-to-a-long-random-secret-before-sharing
+      DATABASE_PATH: /app/data/nova-shop.db
+    volumes:
+      - nova-shop-data:/app/data
+
+volumes:
+  nova-shop-data:
