@@ -2,6 +2,8 @@
 
 Nova Shop is an e-commerce application. It has a customer storefront and a backend API connected to a real SQLite database.
 
+Live Link : https://novashop-yusuf.duckdns.org/ 
+
 ## What has been built
 
 - Customer account registration and sign-in
@@ -50,8 +52,8 @@ To stop the site, return to Command Prompt and press `Ctrl + C`.
 The demonstration administrator account is:
 
 ```text
-Email:    Contact Owner
-Password: Contact Owner
+Email:    admin@novashop.local
+Password: Admin@12345
 ```
 
 Sign in with it and choose **Open admin dashboard** from the account panel. You can inspect orders, edit stock quantities, and add products.
