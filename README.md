@@ -155,6 +155,9 @@ The ZIP must contain `Dockerfile`, `package.json`, `server.js`, `public/`, and `
    | `PORT` | `8080` |
    | `DATABASE_PATH` | `/app/data/nova-shop.db` |
    | `SESSION_SECRET` | a long random value you create and keep private |
+   | `ADMIN_NAME` | your preferred administrator name |
+   | `ADMIN_EMAIL` | administrator email address |
+   | `ADMIN_PASSWORD` | strong administrator password |
 
 10. In **Monitoring**, set the health check path to `/health` if the console shows that setting.
 11. Review, then choose **Create app**. Wait until environment health turns green and open the generated URL.

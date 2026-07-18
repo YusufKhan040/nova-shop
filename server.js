@@ -11,7 +11,9 @@ const dataDir = path.dirname(databasePath);
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const db = new DatabaseSync(databasePath);
 const SECRET = process.env.SESSION_SECRET || 'replace-this-before-deployment';
-if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be set in production.');
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be set in production.');
+const loginAttempts = new Map();
 
 db.exec(`
   PRAGMA foreign_keys = ON;
@@ -90,21 +92,23 @@ function seedDatabase() {
   ];
   expandedCatalogue.forEach(product => { if (!existingProduct.get(product[0])) addProduct.run(...product); });
   db.prepare("UPDATE products SET image = ? WHERE name = 'Travel Pouch'").run('https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=85');
-  const reviewCount = db.prepare('SELECT COUNT(*) AS count FROM product_reviews WHERE product_id = ?');
-  const addReview = db.prepare('INSERT INTO product_reviews (product_id, customer_name, rating, title, body) VALUES (?, ?, ?, ?, ?)');
   db.prepare('SELECT id, name FROM products').all().forEach(product => {
-    if (!reviewCount.get(product.id).count) {
-      addReview.run(product.id, 'Mia R.', 5, 'Exactly what I wanted', `The ${product.name} feels even better in person. It has quickly become part of my daily routine.`);
-      addReview.run(product.id, 'Daniel K.', 5, 'Thoughtful and well made', 'Beautifully finished, useful, and delivered quickly. I would happily recommend it.');
-    }
+    addStarterReviews(product.id, product.name);
   });
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@novashop.local');
-  if (!admin) db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')").run('Store Admin', 'admin@novashop.local', passwordHash('Admin@12345'));
+  const adminEmail = process.env.ADMIN_EMAIL || (isProduction ? '' : 'admin@novashop.local');
+  const adminPassword = process.env.ADMIN_PASSWORD || (isProduction ? '' : 'Admin@12345');
+  if (adminEmail && adminPassword && !db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail.toLowerCase())) db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')").run(process.env.ADMIN_NAME || 'Store Admin', adminEmail.toLowerCase(), passwordHash(adminPassword));
+}
+function addStarterReviews(productId, productName) {
+  if (db.prepare('SELECT COUNT(*) AS count FROM product_reviews WHERE product_id = ?').get(productId).count) return;
+  const add = db.prepare('INSERT INTO product_reviews (product_id, customer_name, rating, title, body) VALUES (?, ?, ?, ?, ?)');
+  add.run(productId, 'Mia R.', 5, 'Exactly what I wanted', `The ${productName} feels even better in person. It has quickly become part of my daily routine.`);
+  add.run(productId, 'Daniel K.', 5, 'Thoughtful and well made', 'Beautifully finished, useful, and delivered quickly. I would happily recommend it.');
 }
 seedDatabase();
 
 function send(res, status, body, type = 'application/json') {
-  res.writeHead(status, { 'Content-Type': `${type}; charset=utf-8`, 'X-Content-Type-Options': 'nosniff' });
+  res.writeHead(status, { 'Content-Type': `${type}; charset=utf-8`, 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()', 'Content-Security-Policy': "default-src 'self'; img-src 'self' https://images.unsplash.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" });
   res.end(type === 'application/json' ? JSON.stringify(body) : body);
 }
 function body(req) {
@@ -115,9 +119,14 @@ function body(req) {
   });
 }
 function clean(value, max = 160) { return String(value || '').trim().slice(0, max); }
+function clientAddress(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim(); }
+function loginBlocked(req) { const attempt = loginAttempts.get(clientAddress(req)); if (!attempt) return false; if (attempt.until <= Date.now()) { loginAttempts.delete(clientAddress(req)); return false; } return attempt.count >= 5; }
+function recordLoginFailure(req) { const key = clientAddress(req); const current = loginAttempts.get(key); const now = Date.now(); const next = !current || current.until <= now ? { count: 1, until: now + 15 * 60 * 1000 } : { count: current.count + 1, until: current.until }; loginAttempts.set(key, next); }
+function safeImageUrl(value) { const image = clean(value, 500); if (!image) return ''; try { const url = new URL(image); return url.protocol === 'https:' ? url.href : null; } catch { return null; } }
+function safeColor(value) { const color = clean(value, 20); return /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#e5e7eb'; }
 function requireUser(req, res) { const user = getUser(req); if (!user) send(res, 401, { error: 'Please sign in to continue.' }); return user; }
 function requireAdmin(req, res) { const user = requireUser(req, res); if (!user) return null; if (user.role !== 'admin') { send(res, 403, { error: 'Admin access required.' }); return null; } return user; }
-function productRows(where = 'active = 1', args = []) { return db.prepare(`SELECT id, name, category, price, stock, emoji, color, image, description, featured FROM products WHERE ${where} ORDER BY featured DESC, id DESC`).all(...args); }
+function productRows(where = 'active = 1', args = []) { return db.prepare(`SELECT id, name, category, price, stock, emoji, color, image, description, featured, active FROM products WHERE ${where} ORDER BY active DESC, featured DESC, id DESC`).all(...args); }
 function galleryFor(product) {
   // Each gallery intentionally stays tied to this product's own photograph.
   // The additional views are focused crops of the same item, never photos of another product.
@@ -152,9 +161,10 @@ async function api(req, res, url) {
     try { const result = db.prepare("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)").run(name, email, passwordHash(password)); const user = db.prepare('SELECT id, name, email, role FROM users WHERE id = ?').get(result.lastInsertRowid); return send(res, 201, { user, token: tokenFor(user) }); } catch { return send(res, 409, { error: 'An account with that email already exists.' }); }
   }
   if (req.method === 'POST' && route === '/api/auth/login') {
+    if (loginBlocked(req)) return send(res, 429, { error: 'Too many sign-in attempts. Please wait 15 minutes and try again.' });
     const input = await body(req); const user = db.prepare('SELECT * FROM users WHERE email = ?').get(clean(input.email, 120).toLowerCase());
-    if (!user || !matchesPassword(String(input.password || ''), user.password_hash)) return send(res, 401, { error: 'Incorrect email or password.' });
-    const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role }; return send(res, 200, { user: safeUser, token: tokenFor(safeUser) });
+    if (!user || !matchesPassword(String(input.password || ''), user.password_hash)) { recordLoginFailure(req); return send(res, 401, { error: 'Incorrect email or password.' }); }
+    loginAttempts.delete(clientAddress(req)); const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role }; return send(res, 200, { user: safeUser, token: tokenFor(safeUser) });
   }
   if (req.method === 'GET' && route === '/api/me') { const user = requireUser(req, res); return user && send(res, 200, { user }); }
   if (req.method === 'GET' && route === '/api/cart') {
@@ -203,8 +213,9 @@ async function api(req, res, url) {
   if (route.startsWith('/api/admin')) {
     if (!requireAdmin(req, res)) return;
     if (req.method === 'GET' && route === '/api/admin/dashboard') { const stats = db.prepare("SELECT (SELECT COUNT(*) FROM orders) AS orders, (SELECT COALESCE(SUM(total), 0) FROM orders) AS revenue, (SELECT COUNT(*) FROM users WHERE role = 'customer') AS customers, (SELECT COUNT(*) FROM products WHERE stock <= 5) AS lowStock").get(); const orders = db.prepare('SELECT order_code, customer_name, total, status, created_at FROM orders ORDER BY id DESC LIMIT 12').all(); return send(res, 200, { stats, orders, products: productRows('1 = 1') }); }
-    if (req.method === 'POST' && route === '/api/admin/products') { const p = await body(req); const name = clean(p.name); const category = clean(p.category); const price = Number(p.price); const stock = Number(p.stock); if (!name || !category || !Number.isFinite(price) || price < 0 || !Number.isInteger(stock) || stock < 0) return send(res, 400, { error: 'Enter valid product information.' }); const result = db.prepare('INSERT INTO products (name, category, price, stock, emoji, color, image, description, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(name, category, price, stock, clean(p.emoji, 4) || '🛍️', clean(p.color, 20) || '#e5e7eb', clean(p.image, 500), clean(p.description, 300) || 'New store product.', p.featured ? 1 : 0); return send(res, 201, { id: result.lastInsertRowid }); }
-    if (req.method === 'PATCH' && /^\/api\/admin\/products\/\d+$/.test(route)) { const id = Number(route.split('/').pop()); const p = await body(req); const stock = Number(p.stock); if (!Number.isInteger(stock) || stock < 0) return send(res, 400, { error: 'Stock must be zero or more.' }); db.prepare('UPDATE products SET stock = ? WHERE id = ?').run(stock, id); return send(res, 200, { success: true }); }
+    if (req.method === 'POST' && route === '/api/admin/products') { const p = await body(req); const name = clean(p.name); const category = clean(p.category); const price = Number(p.price); const stock = Number(p.stock); const image = safeImageUrl(p.image); if (!name || !category || !Number.isFinite(price) || price < 0 || !Number.isInteger(stock) || stock < 0 || image === null) return send(res, 400, { error: 'Enter valid product information and an HTTPS image URL.' }); const result = db.prepare('INSERT INTO products (name, category, price, stock, emoji, color, image, description, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(name, category, price, stock, clean(p.emoji, 4) || '🛍️', safeColor(p.color), image, clean(p.description, 300) || 'New store product.', p.featured ? 1 : 0); addStarterReviews(result.lastInsertRowid, name); return send(res, 201, { id: result.lastInsertRowid }); }
+    if (req.method === 'PATCH' && /^\/api\/admin\/products\/\d+$/.test(route)) { const id = Number(route.split('/').pop()); const p = await body(req); if (typeof p.active === 'boolean') { const result = db.prepare('UPDATE products SET active = ? WHERE id = ?').run(p.active ? 1 : 0, id); if (!result.changes) return send(res, 404, { error: 'Product does not exist.' }); return send(res, 200, { success: true, message: p.active ? 'Product restored to the shop.' : 'Product removed from the shop.' }); } const stock = Number(p.stock); if (!Number.isInteger(stock) || stock < 0) return send(res, 400, { error: 'Stock must be zero or more.' }); const result = db.prepare('UPDATE products SET stock = ? WHERE id = ?').run(stock, id); if (!result.changes) return send(res, 404, { error: 'Product does not exist.' }); return send(res, 200, { success: true }); }
+    if (req.method === 'DELETE' && /^\/api\/admin\/products\/\d+$/.test(route)) { const id = Number(route.split('/').pop()); const result = db.prepare('UPDATE products SET active = 0 WHERE id = ? AND active = 1').run(id); if (!result.changes) return send(res, 404, { error: 'Product was already removed or does not exist.' }); return send(res, 200, { success: true, message: 'Product removed from the shop.' }); }
   }
   return send(res, 404, { error: 'API route not found.' });
 }

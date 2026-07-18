@@ -109,3 +109,33 @@ $('[data-shop-home]').onclick = () => {
   renderProducts();
   document.querySelector('#shop').scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+
+async function loadAdmin() {
+  try {
+    const data = await api('/api/admin/dashboard');
+    const stats = data.stats;
+    $('#admin-content').innerHTML = `<p class="eyebrow">Store control room</p><h2>Admin dashboard</h2><div class="admin-grid"><div class="stat"><strong>${stats.orders}</strong><span>Orders</span></div><div class="stat"><strong>${money(stats.revenue)}</strong><span>Revenue</span></div><div class="stat"><strong>${stats.customers}</strong><span>Customers</span></div><div class="stat"><strong>${stats.lowStock}</strong><span>Low stock</span></div></div><h3>Recent orders</h3><table class="admin-orders"><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr>${data.orders.map(order => `<tr><td>${esc(order.order_code)}</td><td>${esc(order.customer_name)}</td><td>${money(order.total)}</td><td>${esc(order.status)}</td></tr>`).join('')}</table><h3>Manage products</h3><p class="dialog-intro">Removing a product hides it from customers while keeping past orders intact. You can restore it later if needed.</p><div class="stock-list">${data.products.map(product => `<div class="stock-row ${product.active ? '' : 'removed-product'}"><span>${esc(product.name)} ${product.active ? '' : '<em>Removed</em>'}</span><span><input type="number" min="0" value="${product.stock}" data-stock="${product.id}" ${product.active ? '' : 'disabled'} /><button class="secondary button" data-save-stock="${product.id}" ${product.active ? '' : 'disabled'}>Save stock</button>${product.active ? `<button class="delete-product" data-delete-product="${product.id}">Remove</button>` : `<button class="restore-product" data-restore-product="${product.id}">Restore</button>`}</span></div>`).join('')}</div><h3>Add product</h3><form id="add-product"><div class="form-row"><label>Name<input name="name" required /></label><label>Category<input name="category" required /></label></div><div class="form-row"><label>Price<input name="price" type="number" min="0" step="0.01" required /></label><label>Stock<input name="stock" type="number" min="0" required /></label></div><label>Image URL (optional)<input name="image" type="url" placeholder="https://example.com/product.jpg" /></label><label>Description<textarea name="description"></textarea></label><button class="button dark" type="submit">Add product</button></form>`;
+    $('#admin-dialog').showModal();
+    document.querySelectorAll('[data-save-stock]').forEach(button => button.onclick = async () => { try { const id = button.dataset.saveStock; await api(`/api/admin/products/${id}`, { method: 'PATCH', body: JSON.stringify({ stock: $(`[data-stock="${id}"]`).value }) }); showToast('Stock updated'); loadProducts(); } catch (error) { showToast(error.message); } });
+    document.querySelectorAll('[data-delete-product]').forEach(button => button.onclick = async () => { if (!window.confirm('Remove this product from the customer shop? Past orders will be kept.')) return; try { await api(`/api/admin/products/${button.dataset.deleteProduct}`, { method: 'DELETE' }); showToast('Product removed from the shop.'); await loadProducts(); renderWishlist(); loadAdmin(); } catch (error) { showToast(error.message); } });
+    document.querySelectorAll('[data-restore-product]').forEach(button => button.onclick = async () => { try { await api(`/api/admin/products/${button.dataset.restoreProduct}`, { method: 'PATCH', body: JSON.stringify({ active: true }) }); showToast('Product restored to the shop.'); await loadProducts(); renderWishlist(); loadAdmin(); } catch (error) { showToast(error.message); } });
+    $('#add-product').onsubmit = async event => { event.preventDefault(); try { await api('/api/admin/products', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(event.target))) }); showToast('Product added'); event.target.reset(); await loadProducts(); loadAdmin(); } catch (error) { showToast(error.message); } };
+  } catch (error) { showToast(error.message); }
+}
+
+function accountForm(kind = 'login') {
+  $('#account-title').textContent = kind === 'login' ? 'Welcome back' : 'Create account';
+  $('#account-content').innerHTML = `<p class="dialog-intro">${kind === 'login' ? 'Sign in to view orders and check out.' : 'Create an account to track your purchases.'}</p><form id="auth-form" novalidate autocomplete="off">${kind === 'register' ? '<label>Full name<input name="name" required minlength="2" autocomplete="name" /></label>' : ''}<label>Email address<input type="email" name="email" required autocomplete="off" data-lpignore="true" /></label><label>Password<input type="password" name="password" required minlength="8" placeholder="At least 8 characters" autocomplete="off" data-lpignore="true" /></label><p id="auth-error" class="auth-error" role="alert" hidden></p><button class="button dark full" type="submit">${kind === 'login' ? 'Sign in' : 'Create account'}</button></form><p class="auth-switch">${kind === 'login' ? 'New here?' : 'Already have an account?'} <button class="text-button" id="switch-auth">${kind === 'login' ? 'Create an account' : 'Sign in'}</button></p>`;
+  $('#switch-auth').onclick = () => accountForm(kind === 'login' ? 'register' : 'login');
+  $('#auth-form').onsubmit = async event => {
+    event.preventDefault();
+    const form = event.currentTarget; const errorBox = $('#auth-error'); const button = form.querySelector('button[type="submit"]');
+    errorBox.hidden = true; button.disabled = true; button.textContent = kind === 'login' ? 'Signing in...' : 'Creating account...';
+    try {
+      const result = await api(`/api/auth/${kind}`, { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+      state.user = result.user; state.token = result.token; state.wishlistOnly = false; localStorage.setItem('nova-token', state.token); localStorage.setItem('nova-user', JSON.stringify(state.user)); await syncAccountData(); await updateAccount(); showToast(`Welcome, ${state.user.name.split(' ')[0]}!`);
+    } catch (error) {
+      errorBox.textContent = error.message || 'We could not sign you in. Please check your details.'; errorBox.hidden = false; showToast(errorBox.textContent); button.disabled = false; button.textContent = kind === 'login' ? 'Sign in' : 'Create account';
+    }
+  };
+}

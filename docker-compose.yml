@@ -8,6 +8,9 @@ services:
       PORT: 8080
       SESSION_SECRET: change-this-to-a-long-random-secret-before-sharing
       DATABASE_PATH: /app/data/nova-shop.db
+      ADMIN_NAME: ${ADMIN_NAME:-Store Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@novashop.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@12345}
     volumes:
       - nova-shop-data:/app/data
 
