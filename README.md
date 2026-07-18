@@ -1,197 +1,421 @@
-# Nova Shop — Full-Stack E-Commerce Project
+# ✦ Nova Shop
 
-Nova Shop is an e-commerce application. It has a customer storefront and a backend API connected to a real SQLite database.
+### A modern full-stack e-commerce platform built for thoughtful everyday shopping.
 
-Live Link : https://novashop-yusuf.duckdns.org/ 
+<p align="center">
+  <strong>Discover. Save. Shop. Enjoy.</strong>
+</p>
 
-## What has been built
+<p align="center">
+  <a href="https://novashop-yusuf.duckdns.org/">🌐 Live Demo</a>
+  •
+  <a href="https://github.com/YusufKhan040/nova-shop">💻 GitHub Repository</a>
+</p>
 
-- Customer account registration and sign-in
-- Password hashing and signed login sessions
-- Searchable, filterable product catalogue
-- Premium product detail view with an image gallery and verified customer reviews
-- Browser-persisted wishlist for saved products
-- Account-specific cart and wishlist records stored in SQLite
-- Stock-aware shopping bag saved in the browser
-- Checkout with delivery information and cash-on-delivery or demo payment option
-- Automatic order creation, order references, and stock reduction
-- Customer order history
-- Admin dashboard: sales overview, recent orders, stock updates, and adding products
-- SQLite database created automatically at `data/nova-shop.db`
+---
 
-## Run it on Windows (Command Prompt)
+## 🛍️ About Nova Shop
 
-You are using **Command Prompt** when you see a prompt like `C:\Users\...>`. In the project directory, run:
+**Nova Shop** is a full-stack e-commerce web application designed to deliver a modern, elegant, and frictionless online shopping experience.
 
-```cmd
+The platform allows customers to discover products, explore product details, save favourites, manage their shopping bag, create accounts, complete orders, and track their purchase history.
+
+Behind the polished storefront is a complete application architecture with authentication, database persistence, stock-aware checkout logic, order transactions, and role-based administrative controls.
+
+> **22 products • Customer accounts • Saved carts • Wishlists • Checkout • Order history • Admin controls**
+
+---
+
+## ✨ Features
+
+### 🛒 Customer Experience
+
+* Browse a curated product catalogue
+* Search products instantly
+* Filter products by category
+* Sort products by price
+* View product details and image galleries
+* Check stock availability
+* Add products to the shopping bag
+* Save products to a personal wishlist
+* Move wishlist items to the shopping bag
+* Create and manage customer accounts
+* Complete the checkout process
+* View order history and order details
+
+### 👤 Account Management
+
+Each authenticated user receives their own personal shopping state.
+
+* Secure user registration and login
+* Account-specific carts
+* Account-specific wishlists
+* Persistent order history
+* Session-based authentication
+
+### 💳 Checkout & Order Processing
+
+Nova Shop implements realistic commerce logic rather than a simple static checkout flow.
+
+The checkout workflow includes:
+
+```text
+Browse
+   ↓
+Save / Add to Bag
+   ↓
+Sign In
+   ↓
+Enter Delivery Details
+   ↓
+Validate Order
+   ↓
+Check Stock
+   ↓
+Calculate Total
+   ↓
+Create Order
+   ↓
+Reduce Stock
+```
+
+Stock is validated before an order is created, helping prevent orders from exceeding available inventory.
+
+### 🛠️ Admin Dashboard
+
+Administrators can manage important store operations through a role-based dashboard.
+
+* View store health metrics
+* View recent orders
+* Monitor revenue metrics
+* Identify low-stock products
+* Update product stock quantities
+* Add new products
+* Manage the live product catalogue
+
+---
+
+## 🏗️ System Architecture
+
+Nova Shop follows a simple three-layer architecture:
+
+```text
+┌──────────────────────────────┐
+│        Frontend              │
+│   HTML • CSS • JavaScript    │
+│   Responsive User Interface  │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│       Node.js Backend        │
+│   REST-style JSON API        │
+│   Authentication             │
+│   Checkout Logic             │
+│   Stock Management            │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│        SQLite Database       │
+│ Users • Products • Orders    │
+│ Carts • Wishlists • Reviews  │
+└──────────────────────────────┘
+```
+
+---
+
+## 🗄️ Database Design
+
+The application uses SQLite with relational tables for persistent data storage.
+
+| Table             | Purpose                               |
+| ----------------- | ------------------------------------- |
+| `users`           | Customer identity and roles           |
+| `products`        | Product catalogue and stock           |
+| `cart_items`      | User shopping bag items               |
+| `wishlist_items`  | Saved customer favourites             |
+| `orders`          | Delivery information and order totals |
+| `order_items`     | Individual order line items           |
+| `product_reviews` | Ratings and customer reviews          |
+
+Foreign keys and transactional order processing help maintain data consistency.
+
+---
+
+## 🔐 Security & Reliability
+
+Nova Shop includes practical security and reliability measures:
+
+* Password hashing using `scrypt`
+* HMAC-signed sessions
+* Server-side input validation
+* Role-based admin access
+* SQLite foreign key constraints
+* Atomic checkout transactions
+* Stock-aware order processing
+* Persistent database storage
+
+---
+
+## 🧰 Tech Stack
+
+### Frontend
+
+* HTML5
+* CSS3
+* Vanilla JavaScript
+* Responsive design
+* Google Fonts
+
+### Backend
+
+* Node.js
+* Express.js
+* REST-style JSON API
+
+### Database
+
+* SQLite
+
+### Deployment
+
+* Docker
+* AWS EC2
+* Nginx
+* Elastic IP
+* DuckDNS
+* Let's Encrypt HTTPS
+
+---
+
+## 🚀 Deployment Architecture
+
+The production deployment follows this flow:
+
+```text
+User Browser
+     │
+     ▼
+HTTPS
+     │
+     ▼
+DuckDNS Domain
+     │
+     ▼
+Nginx Reverse Proxy
+     │
+     ▼
+AWS EC2 Instance
+     │
+     ▼
+Docker Container
+     │
+     ▼
+Node.js + Express
+     │
+     ▼
+SQLite Database
+```
+
+The application is containerized with Docker and deployed on AWS EC2.
+
+The Docker container uses a persistent volume for the SQLite database, allowing application containers to be rebuilt or replaced without losing stored application data.
+
+The container is configured with:
+
+```text
+restart: unless-stopped
+```
+
+This allows the application to automatically restart after an EC2 reboot.
+
+---
+
+## 🖥️ Run Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/YusufKhan040/nova-shop.git
+cd nova-shop
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Start the application
+
+```bash
 npm start
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
-
-If another application uses that port, use:
-
-```cmd
-set PORT=3001 && npm start
-```
-
-Then open [http://localhost:3001](http://localhost:3001).
-
-To stop the site, return to Command Prompt and press `Ctrl + C`.
-
-## First test of the customer flow
-
-1. Open the site and add products to **Bag**.
-2. Click **Checkout**. You will be asked to create an account or sign in.
-3. Complete the delivery form and place the order.
-4. Open the account panel and choose **View my orders**. Your new order appears there.
-5. Restarting the server does not remove products, accounts, or orders—the SQLite database retains them.
-
-## Admin dashboard
-
-The demonstration administrator account is:
+The application will be available at:
 
 ```text
-Email:    admin@novashop.local
-Password: Admin@12345
+http://localhost:8080
 ```
 
-Sign in with it and choose **Open admin dashboard** from the account panel. You can inspect orders, edit stock quantities, and add products.
+---
 
-**For your project demonstration:** use these credentials only on your own computer. Before putting the project online, remove or replace this default account and set a secure session secret.
+## 🐳 Run with Docker
 
-## Project structure
+Build the Docker image:
 
-| File or folder | Purpose |
-| --- | --- |
-| `public/index.html` | Customer-facing page structure |
-| `public/styles.css` | Responsive visual design |
-| `public/app.js` | Browser logic: account, bag, checkout, dashboard |
-| `server.js` | Backend API, authentication, orders, admin logic |
-| `data/nova-shop.db` | SQLite database, created on first run |
-
-## Features to demonstrate to your examiners
-
-1. Register a new customer account.
-2. Search and filter the catalogue.
-3. Add products to the bag; change their quantities.
-4. Place an order. Explain that the database transaction reduces stock at the same time as it creates the order.
-5. Sign in as the admin and show the order dashboard and stock update.
-6. Stop and restart the server, then show the saved order again to demonstrate database persistence.
-
-## Important deployment checklist
-
-The project works as a complete demonstration. A public commercial shop needs these additional steps before real customers use it:
-
-1. Set a long, random session secret before starting the server:
-
-   ```cmd
-   set SESSION_SECRET=put-a-long-random-value-here && npm start
-   ```
-
-2. Replace the default administrator credentials and add a password-reset flow.
-3. Deploy behind HTTPS, using a managed host such as Render, Railway, or an institution server.
-4. Use a managed SQL database (PostgreSQL/MySQL) for a multi-user deployment; SQLite is excellent for local projects and small single-server demos.
-5. Integrate a payment provider such as Stripe or Razorpay. Do not collect, transmit, or save card numbers yourself. The present **demo card payment** choice intentionally records a demo payment only; cash on delivery is the functional non-card option.
-6. Add email confirmation, shipping-provider integration, image uploads, product reviews, returns, privacy policy, and rate limiting as the store grows.
-
-## Suggested report title
-
-**Design and Development of a Secure Full-Stack E-Commerce Platform Using Node.js and SQLite**
-
-For your report, describe the three layers: browser frontend, Node.js REST API/backend, and SQLite relational database. The tables are `users`, `products`, `orders`, and `order_items`.
-
-## Docker: run the deployment version locally
-
-Docker Desktop must be running. From **Command Prompt** in this folder:
-
-```cmd
-docker compose up --build
+```bash
+docker build -t nova-shop .
 ```
 
-Open `http://localhost:8080`. The app data is kept in a named Docker volume, so it survives restarting the container on your own computer.
+Run the container:
 
-Stop it with:
-
-```cmd
-docker compose down
+```bash
+docker run -d \
+  --name nova-shop \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -e NODE_ENV=production \
+  -e PORT=8080 \
+  -e SESSION_SECRET="your-secure-session-secret" \
+  -e DATABASE_PATH=/app/data/nova-shop.db \
+  -v nova-shop-data:/app/data \
+  nova-shop
 ```
 
-The health endpoint used by deployment tools is `http://localhost:8080/health`.
+---
 
-## Deploy to AWS Elastic Beanstalk (beginner steps)
+## 📁 Project Structure
 
-This repository is ready for a **single-container Docker** Elastic Beanstalk environment. The `Dockerfile` builds the application, while `.ebextensions/01-healthcheck.config` documents the `/health` health check.
-
-### Important database note
-
-The current SQLite database is appropriate for a college demo or a single server. Elastic Beanstalk can replace its EC2 instance during deployments or scaling, which means a container-local SQLite database can be reset. For a genuine public production shop, migrate the data layer to Amazon RDS (PostgreSQL/MySQL) before scaling beyond one instance.
-
-### 1. Create the deployment ZIP
-
-Ensure Docker works locally first. Then run this in **Command Prompt**:
-
-```cmd
-tar -a -c -f nova-shop-eb.zip Dockerfile package.json server.js public .ebextensions
+```text
+nova-shop/
+│
+├── public/
+│   ├── index.html
+│   ├── app.js
+│   ├── styles.css
+│   ├── extras.css
+│   ├── improvements.css
+│   ├── overhaul.css
+│   ├── account-features.css
+│   ├── wishlist.css
+│   └── image-fit.css
+│
+├── data/
+│   └── nova-shop.db
+│
+├── server.js
+├── package.json
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
 ```
 
-The ZIP must contain `Dockerfile`, `package.json`, `server.js`, `public/`, and `.ebextensions/` directly at its top level—not inside another parent folder.
+---
 
-### 2. Create the Elastic Beanstalk application
+## 🔄 Deployment Workflow
 
-1. Sign in to the [AWS Elastic Beanstalk console](https://console.aws.amazon.com/elasticbeanstalk/).
-2. Select a nearby AWS Region, such as Mumbai (`ap-south-1`). Keep the same Region for all future resources.
-3. Choose **Create application**.
-4. Application name: `nova-shop` (or your preferred unique name).
-5. Environment tier: **Web server environment**.
-6. Platform: **Docker** and select the current **Docker running on 64bit Amazon Linux 2023** branch offered by AWS.
-7. Under Application code, choose **Upload your code**, then select `nova-shop-eb.zip`.
-8. Choose **Configure more options**. For a demo, select a **Single instance** environment to control cost.
-9. In **Software**, add these environment properties:
+Updates can be deployed from GitHub to the AWS EC2 server using:
 
-   | Name | Value |
-   | --- | --- |
-   | `NODE_ENV` | `production` |
-   | `PORT` | `8080` |
-   | `DATABASE_PATH` | `/app/data/nova-shop.db` |
-   | `SESSION_SECRET` | a long random value you create and keep private |
-   | `ADMIN_NAME` | your preferred administrator name |
-   | `ADMIN_EMAIL` | administrator email address |
-   | `ADMIN_PASSWORD` | strong administrator password |
-
-10. In **Monitoring**, set the health check path to `/health` if the console shows that setting.
-11. Review, then choose **Create app**. Wait until environment health turns green and open the generated URL.
-
-AWS can upload Docker source bundles from the console, and its current Docker platform supports custom images built from a Dockerfile. See the [AWS Docker deployment guide](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/single-container-docker-configuration.html) and [environment creation guide](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environments-create-wizard.html).
-
-### 3. Update later
-
-1. Make and test a change locally with `docker compose up --build`.
-2. Recreate `nova-shop-eb.zip` with the command above.
-3. Open your Elastic Beanstalk environment, choose **Upload and deploy**, select the new ZIP, and confirm.
-4. Check the **Events** and **Logs** pages if health does not become green.
-
-### 4. Avoid unexpected AWS cost
-
-When your demonstration is finished, open the Elastic Beanstalk environment and choose **Actions → Terminate environment**. This removes the associated environment resources. Always verify in the Billing console afterwards.
-
-## Push to GitHub
-
-### 1. Create the repository online
-
-1. Go to [GitHub](https://github.com/new) while signed in.
-2. Name it `nova-shop`.
-3. Choose **Private** if this is a college submission.
-4. Do **not** add a README, `.gitignore`, or license there; this project already has those.
-5. Click **Create repository** and copy the HTTPS URL it shows.
-
-### 2. Push this project
-
-This project is already initialized and committed locally. In **Command Prompt**, run the following from this folder. Replace `YOUR-USERNAME` with your GitHub username:
-
-```cmd
-git remote add origin https://github.com/YOUR-USERNAME/nova-shop.git
-git push -u origin main
+```text
+GitHub
+   ↓
+git pull
+   ↓
+Docker image rebuild
+   ↓
+Old container replaced
+   ↓
+New container started
+   ↓
+Nginx continues serving traffic
 ```
 
-GitHub may open a browser window for sign-in. Approve it, then return to Command Prompt. Your database file, `.env`, Docker volume data, and Elastic Beanstalk local settings are excluded by `.gitignore`.
+Example deployment:
+
+```bash
+cd ~/nova-shop-new
+git pull
+docker build -t nova-shop:new .
+docker stop nova-shop
+docker rm nova-shop
+docker run -d \
+  --name nova-shop \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  nova-shop:new
+```
+
+The database remains persistent through the Docker volume:
+
+```text
+nova-shop-data
+```
+
+---
+
+## 🌐 Live Project
+
+### 🚀 Live Demo
+
+https://novashop-yusuf.duckdns.org/
+
+### 💻 GitHub Repository
+
+https://github.com/YusufKhan040/nova-shop
+
+---
+
+## 🎯 Project Goals
+
+Nova Shop was built as a practical full-stack web development project to explore:
+
+* Modern e-commerce user experience
+* Frontend and backend integration
+* REST-style API design
+* Authentication and sessions
+* Relational database design
+* Transactional checkout logic
+* Stock management
+* Docker containerization
+* AWS EC2 deployment
+* Nginx reverse proxy configuration
+* HTTPS certificate setup
+* Production deployment workflows
+
+---
+
+## 🔮 Future Improvements
+
+Potential future enhancements include:
+
+* Online payments with Stripe or Razorpay
+* Managed cloud SQL database
+* Product image uploads
+* Advanced product reviews
+* Email order confirmations
+* Delivery tracking integration
+* CI/CD deployment with GitHub Actions
+* Cloud monitoring and logging
+* Product recommendations
+
+---
+
+## 👨‍💻 Author
+
+### Yusuf Khan
+
+**B.Tech — Information Technology**
+
+IBM Web Development Project • 2026
+
+---
+
+<p align="center">
+  <strong>Nova Shop — Everyday goods, thoughtfully chosen.</strong>
+</p>
+
+<p align="center">
+  ⭐ If you like this project, consider giving the repository a star!
+</p>
