@@ -112,7 +112,7 @@ Nova Shop follows a simple three-layer architecture:
 │   REST-style JSON API        │
 │   Authentication             │
 │   Checkout Logic             │
-│   Stock Management            │
+│   Stock Management           │
 └──────────────┬───────────────┘
                │
                ▼
